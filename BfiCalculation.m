@@ -83,9 +83,7 @@ function F=BfiCalculation()
 
     fs=0.1;
     time=fs:fs:len*fs;
-    for i=1:len
-        plot(time,1/F(i))
-    end
+    plot(time,F)
     xlabel('time')
     ylabel('F')
     title("F value","FontSize",10)
