@@ -10,10 +10,10 @@ function F=BfiCalculation()
     imagesc(ref_image_data)    
     colorbar
 
-    [x,y,xr,yr]=SelectRoi('ROI of refernce');
+    [x,y,xr,yr]=SelectRoi('ROI of refernce',101);
     close
     % mean reference intensity 
-    mean_Ir=mean2(ref_image_data(int16(x):int16(x+xr),int16(y):int16(y+yr)));
+    mean_Ir=mean2(ref_image_data(int16(y):int16(y+yr),int16(x):int16(x+xr)));
     
 %% set ROI of image and FFT image
    
@@ -34,15 +34,16 @@ function F=BfiCalculation()
     imagesc(ref_sam_image_data)
     colorbar
     cd(current_folder)
-    [x1,y1,xr1,yr1]=SelectRoi('ROI of refence and sample');    
+    [x1,y1,xr1,yr1]=SelectRoi('ROI of refence and sample',101);    
     close
     
-    imagefft = fft2(ref_sam_image_data(int16(x1):int16(x1+xr1),int16(y1):int16(y1+yr1)));
-    imagefftshift = fftshift(imagefft);
-    imagesc(log(abs(imagefftshift)))
+    image_fft = fft2(ref_sam_image_data(y1:y1+yr1, x1:x1+xr1));
+    %%
+    image_fft_shift = fftshift(image_fft);
+    imagesc(log(abs(image_fft_shift)))
     colorbar
-    [x2,y2,xr2,yr2]=SelectRoi('ROI of interference');
-    [x3,y3,xr3,yr3]=SelectRoi('ROI of sample');
+    [x2,y2,xr2,yr2]=SelectRoi('ROI of interference',11);
+    [x3,y3,xr3,yr3]=SelectRoi('ROI of sample',11);
     close
 
 %% fft shift and image plot
@@ -55,27 +56,36 @@ function F=BfiCalculation()
         str = strcat("ss_single_",num,".tiff");
         tiff = Tiff(str);
         r = read(tiff);
-        imagefft = fft2(r(int16(x1):int16(x1+xr1),int16(y1):int16(y1+yr1)));
-        imagefftshift = fftshift(imagefft);
+        image_fft = fft2(r(y1:y1+yr1, x1:x1+xr1));
+        image_fft_shift = fftshift(image_fft);
         
-        absshift = abs(imagefftshift);
-        roifft = absshift(int16(x2):int16(x2+xr2),int16(y2):int16(y2+yr2));
-        Is = absshift(int16(x3):int16(x3+xr3),int16(y3):int16(y3+yr3));
+        roi_fft = image_fft_shift(y2:y2+yr2, x2:x2+xr2);
+        Is = image_fft_shift(y3:y3+yr3, x3:x3+xr3);
+        
+        Is=ifft2(Is);
+        Is=abs(ifftshift(Is));
         mean_Is=mean2(Is);
+
+        roi_fft=ifft2(roi_fft);
+        roi_fft=abs(ifftshift(roi_fft));
+        roi_fft=mean2(roi_fft);
     
-        imagefftshiftabs = roifft;
-        FFTimage_kj(:,:,i) = imagefftshiftabs;
+        image_fft_shift_abs = roi_fft;
+        FFTimage_kj(:,:,i) = image_fft_shift_abs;
 
         
-F(i) = mean(imagefftshiftabs,"all")/(mean_Is*mean_Ir);
+        F(i) = mean(image_fft_shift_abs,"all")/(mean_Is*mean_Ir);
     end
 
     cd(current_folder) 
 %%    
-    %plot F & lowpass filtered F
+    %plot F
+
     fs=0.1;
     time=fs:fs:len*fs;
-    plot(time,F)
+    for i=1:len
+        plot(time,1/F(i))
+    end
     xlabel('time')
     ylabel('F')
     title("F value","FontSize",10)
